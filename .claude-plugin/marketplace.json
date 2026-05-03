@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "elixir-tooling",
+  "description": "Elixir/Phoenix development tooling — four-agent workflow for idiomatic Elixir, OTP design, Ecto patterns, Phoenix conventions, architecture review, test contract definition, and code quality review",
+  "owner": {
+    "name": "Danielwsx64"
+  },
+  "plugins": [
+    {
+      "name": "elixir-tooling",
+      "source": "./",
+      "description": "Elixir/Phoenix development tooling — four-agent workflow covering plan correctness (elixir-plan-reviewer), structural architecture (elixir-architect), test contract definition (elixir-qa), and code quality review (elixir-backend)",
+      "version": "2.0.0",
+      "category": "development"
+    }
+  ]
+}

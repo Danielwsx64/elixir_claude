@@ -1,0 +1,11 @@
+# Domain: Ecto Changesets
+
+- **No programmatic fields in `cast/3`**: Fields set by the system (`user_id`, `role`, `inserted_by`, `status`) must not be in the `cast/3` field list. Flag them.
+- **`validate_required/2` after `cast/3`**: Validation must come after casting. Flag `validate_required` before `cast` or missing entirely when required fields exist.
+- **`get_field/2` not map access**: Reading values from a changeset must use `Ecto.Changeset.get_field(changeset, :field)`, not `changeset.changes.field` or `changeset.data.field`. Flag direct map access.
+- **Named bindings in complex queries**: Queries joining 2+ tables must use named bindings (e.g., `from u in User, as: :user, join: p in Post, as: :post`). Flag anonymous positional bindings in complex queries.
+- **No string interpolation in `fragment/1`**: `fragment("lower(#{field})")` is a SQL injection risk. Correct: `fragment("lower(?)", field)`. Flag all string interpolation inside `fragment/1`.
+- **Always call Schema.changeset in mutators**: Mutator modules must call the schema's own changeset function (`Schema.changeset/2` or a named variant like `create_changeset/2`). Never call `Ecto.Changeset.change/2` or `Ecto.Changeset.cast/3` directly in a mutator — all cast/validate logic belongs in the Schema module.
+- **No `put_change` in mutators**: Mutator modules must never call `Ecto.Changeset.put_change/3`. If a field needs to be set (including system-set fields like foreign keys), add it to the schema changeset's `cast/3` field list and pass it via the attrs map literal. The security boundary is enforced at the controller/params layer, not by excluding fields from `cast`.
+- **Native Postgres enum types**: For enum-typed fields, use native PostgreSQL enum types rather than `:string` columns. In migrations: `execute("CREATE TYPE my_enum AS ENUM ('val1', 'val2')", "DROP TYPE my_enum")`, then `add :field, :my_enum`. In schemas: `field :field, Ecto.Enum, values: [:val1, :val2]`. Flag `:string` fields that are actually enumerations.
+- **`Repo.get_by` does not support nil comparisons**: `Repo.get_by(Schema, field: nil)` raises `ArgumentError` — Ecto forbids nil in `get_by`. To assert a field is nil, use `Repo.get!(Schema, id)` and compare the field directly.

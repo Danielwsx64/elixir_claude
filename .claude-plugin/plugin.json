@@ -1,0 +1,7 @@
+{
+  "name": "elixir-tooling",
+  "description": "Elixir/Phoenix development tooling — four-agent workflow covering plan correctness (elixir-plan-reviewer), structural architecture (elixir-architect), test contract definition (elixir-qa), and code quality review (elixir-backend)",
+  "author": {
+    "name": "Danielwsx64"
+  }
+}
