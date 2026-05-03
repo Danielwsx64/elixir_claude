@@ -10,7 +10,7 @@
       "name": "elixir-tooling",
       "source": "./",
       "description": "Elixir/Phoenix development tooling — four-agent workflow covering plan correctness (elixir-plan-reviewer), structural architecture (elixir-architect), test contract definition (elixir-qa), and code quality review (elixir-backend)",
-      "version": "2.0.0",
+      "version": "2.2.0",
       "category": "development"
     }
   ]

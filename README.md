@@ -64,7 +64,7 @@ Defines the complete test contract before any code is written. Produces:
 - **OTP process tests** — `start_supervised!/1`, `:sys.get_state` assertions, crash/recovery, concurrent access; forbids `Process.sleep`
 - **LiveView tests** — mount, event handlers (valid + invalid), redirect assertions, PubSub re-render, auth redirect
 - **Property-based and edge cases** — `StreamData` for pure functions, boundary values, Unicode/empty strings
-- **Integration and boundary tests** — `Mox.expect/3`, `Mox.stub_with/2`, flags ad-hoc anonymous function mocks
+- **Integration and boundary tests** — strict hierarchy: real setup first (factories, args, test DB); else `Req.Test`/`Tesla.Mock` for HTTP; else `Mimic` (with `@spec` on mocked functions). `Mox` forbidden; flags anonymous-function mocks; email via `Swoosh.TestAssertions`
 
 Output: Test file inventory table → per-module Given/When/Then scenarios with ExUnit patterns → coverage checklist
 

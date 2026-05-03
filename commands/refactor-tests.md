@@ -82,28 +82,39 @@ Otherwise, read the test file at `$ARGUMENTS` and apply **all** of the following
     test "Accounts.create_user/2 returns {:error, changeset} when email missing"
     ```
 
-### Mocking (Mimic)
+### Mocking strategy
 
-11. **Never put `expect`/`stub` inside `setup`** — always move them inside individual tests.
+Strict hierarchy. Pick the highest level that applies — never skip levels.
 
-12. **Prefer `expect` over `stub`** — only use `stub` when the call count is variable or the call order is non-deterministic.
-
-13. **Never mock email notifiers** — use `assert_email_sent` (from `Swoosh.TestAssertions`) instead.
-
-14. **Prefer `Req.Test` over `use Mimic` for HTTP mocking**: When the code under test makes HTTP calls via `Req`, intercept them with `Req.Test` rather than mocking the calling module with Mimic. This tests the full HTTP handling path instead of bypassing it. Files that use `Req.Test` must use `async: false`.
+11. **No mock — real setup first.** Before reaching for any mock, exhaust real setup options: pass the dependency as a function argument, use a factory, hit the test DB, build a real struct. Mock is the last resort.
     ```elixir
-    # correct — intercepts the HTTP transport layer
+    # correct — real factory + DB insert, no mock
+    user = insert(:user)
+    assert {:ok, profile} = Accounts.create_profile(user, valid_attrs())
+
+    # wrong — mocking what could be set up for real
+    expect(Repo, :get, fn _, _ -> %User{id: 1} end)
+    assert {:ok, profile} = Accounts.create_profile(1, valid_attrs())
+    ```
+
+12. **HTTP-layer mock — `Req.Test` or `Tesla.Mock`.** When the code under test makes HTTP calls, mock the **response** (status + body) at the transport layer. Never mock the calling module — that bypasses the real HTTP pipeline (decode, headers, retries). `Req.Test` for `Req`-based code, `Tesla.Mock` for `Tesla`-based code. Files using either must be `async: false`.
+    ```elixir
+    # correct — Req.Test intercepts the transport layer
     expect(Client, fn conn -> json(conn, %{suggested_ids: [id]}) end)
     assert {:ok, results} = Context.search(scope, "prompt")
 
-    # wrong — bypasses HTTP entirely
+    # correct — Tesla.Mock intercepts at adapter level
+    Tesla.Mock.mock(fn
+      %{method: :get, url: "https://api.example.com/users/1"} ->
+        %Tesla.Env{status: 200, body: %{"id" => 1, "name" => "Alice"}}
+    end)
+    assert {:ok, %{name: "Alice"}} = Client.get_user(1)
+
+    # wrong — mocking the calling module bypasses HTTP entirely
     expect(ML.Client, :suggest_contacts, fn _candidates, _prompt, _count -> {:ok, [id]} end)
-    assert {:ok, results} = Context.search(scope, "prompt")
     ```
 
-### Req.Test
-
-15. **Multiple sequential HTTP calls**: write one `expect` per HTTP call in the order the calls are made. Never use a single `stub` with `cond` routing.
+13. **Multiple sequential HTTP calls**: write one `expect` per HTTP call in the order the calls are made. Never use a single `stub` with `cond` routing.
     ```elixir
     # correct — two ordered expects
     expect(Client, fn conn -> json(conn, %{"token" => "abc"}) end)
@@ -118,18 +129,28 @@ Otherwise, read the test file at `$ARGUMENTS` and apply **all** of the following
     end)
     ```
 
-16. **Import rule for Req.Test**:
+14. **`Req.Test` import rule**:
     - If the file does **not** use `use Mimic`: add `import Req.Test` at the top; use bare `expect/json/text`.
-    - If the file **also** uses `use Mimic`: add `alias Req.Test` (no import); use `Test.expect/Test.json/Test.text`.
+    - If the file **also** uses `use Mimic`: add `alias Req.Test` (no import — `expect` clashes with Mimic); use `Test.expect/Test.json/Test.text`.
     - Never write `Req.Test.` fully qualified inside code bodies.
 
-17. **Req.Test response helpers**: use `json(conn, body)` or `text(conn, body)` — never `Plug.Conn.send_resp` or `Plug.Conn.put_status` directly. For non-200 responses: `%{conn | status: 422} |> text("")`.
+15. **`Req.Test` response helpers**: use `json(conn, body)` or `text(conn, body)` — never `Plug.Conn.send_resp` or `Plug.Conn.put_status` directly. For non-200 responses: `%{conn | status: 422} |> text("")`.
+
+16. **Mimic — only when (11) and (12) don't apply.** Use Mimic only for internal collaborators that don't go through HTTP and whose real setup is genuinely infeasible (e.g., third-party SDK with global side-effects). **Mocked functions must have a `@spec`** on the target module — without a typed contract the test mocks a fiction. Flag missing `@spec` as a blocker.
+
+17. **Never put `expect`/`stub` inside `setup`** — always move them inside individual tests.
+
+18. **Prefer `expect` over `stub`** — only use `stub` when the call count is variable or the call order is non-deterministic.
+
+19. **Forbidden:** `Mox` is not accepted in this project — replace with one of (11)–(16). Anonymous-function mocks passed as arguments (e.g., `fn _ -> :ok end`) are also forbidden — they hide the contract.
+
+20. **Email exception:** never mock email notifiers — use `assert_email_sent` (from `Swoosh.TestAssertions`). It's an in-memory test adapter, not a mock.
 
 ### Aliases & Naming
 
-18. **Alias all LiveCircle modules** so `LiveCircle.*` is never spelled out inside test bodies. Add the alias at the top of the module, alphabetically.
+21. **Alias all LiveCircle modules** so `LiveCircle.*` is never spelled out inside test bodies. Add the alias at the top of the module, alphabetically.
 
-19. **Single alias per line, alphabetical order** — no multi-alias syntax (`alias Mod.{A, B}`).
+22. **Single alias per line, alphabetical order** — no multi-alias syntax (`alias Mod.{A, B}`).
     ```elixir
     # correct
     alias LiveCircle.Auth.User
@@ -139,11 +160,11 @@ Otherwise, read the test file at `$ARGUMENTS` and apply **all** of the following
     alias LiveCircle.Auth.{User, UserToken}
     ```
 
-20. **No abbreviated variable names** — use full descriptive names everywhere. Exception: single-letter bindings in Ecto query macros (`from u in User, where: u.id == ^id`) are allowed.
+23. **No abbreviated variable names** — use full descriptive names everywhere. Exception: single-letter bindings in Ecto query macros (`from u in User, where: u.id == ^id`) are allowed.
 
 ### General
 
-21. **No `rescue`, `try`, or `catch`** unless absolutely unavoidable. Remove any such clauses.
+24. **No `rescue`, `try`, or `catch`** unless absolutely unavoidable. Remove any such clauses.
 
 ---
 

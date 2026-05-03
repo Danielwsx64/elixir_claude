@@ -101,7 +101,7 @@ Defines the complete test contract before implementation:
 3. **OTP Process Tests** — `start_supervised!/1`, `:sys.get_state`, crash/recovery, concurrent access; no `Process.sleep`
 4. **LiveView Tests** — mount, event handlers, redirect assertions, PubSub re-render, auth redirect
 5. **Property-Based and Edge Cases** — `StreamData` for pure functions, boundary values, Unicode/empty strings
-6. **Integration and Boundary Tests** — `Mox.expect/3`, `Mox.stub_with/2`, flag ad-hoc anonymous function mocks
+6. **Integration and Boundary Tests** — strict hierarchy: real setup first (factories, args, test DB); else `Req.Test`/`Tesla.Mock` for HTTP; else `Mimic` (with `@spec` on mocked functions). `Mox` forbidden; flag anonymous-function mocks; email via `Swoosh.TestAssertions`
 
 ### `elixir-backend` (purple, sonnet)
 Reviews written code for quality:

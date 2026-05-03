@@ -24,8 +24,11 @@ Use `Grep` to scan the target files for these signals:
 | `docs-specs.md` | no | any `.ex` context/public module file (check for `@moduledoc` or its absence) |
 | `ecto-changesets.md` | no | `Ecto.Changeset`, `cast(`, `validate_`, `Repo\.` |
 | `otp-patterns.md` | no | `GenServer`, `handle_call`, `handle_cast`, `handle_info`, `use GenServer` |
+| `test-construction.md` | no | any target file path matches `*_test.exs` or lives under `test/` |
 
-Style and naming are universal — always load them. Load the other 6 only when their Grep signal is present.
+Style and naming are universal — always load them. Load the other 7 only when their signal is present.
+
+**Test-construction scope**: the rules in `test-construction.md` apply **only** to test files (`*_test.exs`, anything under `test/`). When reviewing a mix of test and non-test files, apply those rules exclusively to the test files and the regular domain rules to library code under `lib/`.
 
 ## Step 2 — Discover and Load Knowledge
 
